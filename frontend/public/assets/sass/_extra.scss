@@ -847,3 +847,128 @@
 .valkey-badge {
   letter-spacing: 0.5px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Valkey Search Bar — live dropdown styles
+   ═══════════════════════════════════════════════════════════════════════ */
+.valkey-search-wrapper {
+  z-index: 100;
+}
+
+.valkey-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12),
+              0 4px 12px rgba(0, 0, 0, 0.06);
+  max-height: 420px;
+  overflow-y: auto;
+  z-index: 9999;
+  animation: valkey-dropdown-in 0.2s ease-out;
+}
+
+@keyframes valkey-dropdown-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+.valkey-search-dropdown__header {
+  padding: 10px 16px 6px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.valkey-search-dropdown__status {
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.valkey-search-dropdown__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.valkey-search-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease;
+  cursor: pointer;
+
+  &:hover {
+    background: #f9fafb;
+  }
+}
+
+.valkey-search-dropdown__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  background: hsl(var(--main) / 0.08);
+  color: hsl(var(--main));
+}
+
+.valkey-search-dropdown__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.valkey-search-dropdown__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.valkey-search-dropdown__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.valkey-search-dropdown__divider {
+  color: #d1d5db;
+}
+
+/* Spinner */
+@keyframes valkey-spin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+.valkey-spin {
+  display: inline-block;
+  animation: valkey-spin 0.8s linear infinite;
+}
+
+/* Scrollbar inside dropdown */
+.valkey-search-dropdown::-webkit-scrollbar {
+  width: 5px;
+}
+.valkey-search-dropdown::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 5px;
+}
+

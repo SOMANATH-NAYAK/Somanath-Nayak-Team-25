@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import query from "jquery";
 import { Link, NavLink } from "react-router-dom";
+import ValkeySearchBar from "./ValkeySearchBar";
 const HeaderTwo = ({ category }) => {
   const [scroll, setScroll] = useState(false);
   useEffect(() => {
@@ -78,11 +79,7 @@ const HeaderTwo = ({ category }) => {
         </button>
         <div className='container'>
           <div className='position-relative'>
-            <input
-              type='text'
-              className='form-control py-16 px-24 text-xl rounded-pill pe-64'
-              placeholder='Search for a product or brand'
-            />
+            <ValkeySearchBar variant='overlay' />
             <button
               type='submit'
               className='w-48 h-48 bg-main-600 rounded-circle flex-center text-xl text-white position-absolute top-50 translate-middle-y inset-inline-end-0 me-8'
@@ -607,11 +604,7 @@ const HeaderTwo = ({ category }) => {
                     <option value={1}>Ice Cream</option>
                   </select>
                   <div className='search-form__wrapper position-relative'>
-                    <input
-                      type='text'
-                      className='search-form__input common-input py-13 ps-16 pe-18 rounded-0 border-0'
-                      placeholder='Search for a product or brand'
-                    />
+                    <ValkeySearchBar variant='inline' />
                   </div>
                   <button
                     type='submit'
