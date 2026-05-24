@@ -796,3 +796,54 @@
     }
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Valkey Catalog — skeleton shimmer + card micro-interactions
+   ═══════════════════════════════════════════════════════════════════════ */
+@keyframes valkey-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%);  }
+}
+
+.valkey-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 100%
+    );
+    animation: valkey-shimmer 1.6s ease-in-out infinite;
+  }
+}
+
+.valkey-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.valkey-icon-circle {
+  transition: transform 0.3s ease;
+}
+
+.valkey-card:hover .valkey-icon-circle {
+  transform: scale(1.1) rotate(-6deg);
+}
+
+.valkey-badge {
+  letter-spacing: 0.5px;
+}
