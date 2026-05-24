@@ -1,8 +1,112 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import QuantityControl from '../helper/QuantityControl'
 
+const CART_API_URL = 'http://localhost:5000/api/cart';
+const PRODUCTS_API_URL = 'http://localhost:5000/api/products';
+
 const CartSection = () => {
+    const [cartItems, setCartItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadCart = async () => {
+            try {
+                const [cartRes, productsRes] = await Promise.all([
+                    fetch(CART_API_URL),
+                    fetch(PRODUCTS_API_URL),
+                ]);
+
+                if (!cartRes.ok) {
+                    throw new Error(`Cart request failed with ${cartRes.status}`);
+                }
+
+                if (!productsRes.ok) {
+                    throw new Error(`Products request failed with ${productsRes.status}`);
+                }
+
+                const cartData = await cartRes.json();
+                const productsData = await productsRes.json();
+                const productMap = new Map(productsData.map((product) => [String(product.id), product]));
+
+                const items = Object.entries(cartData).map(([productId, quantity]) => {
+                    const product = productMap.get(String(productId));
+                    const qty = Number(quantity);
+                    const price = product ? Number(product.price) : 0;
+
+                    return {
+                        productId,
+                        quantity: qty,
+                        productName: product ? product.name : `Product ${productId}`,
+                        price,
+                        image: productId,
+                        subtotal: price * qty,
+                    };
+                });
+
+                if (!cancelled) {
+                    setCartItems(items);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err.message);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        loadCart();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const totals = useMemo(() => {
+        const subtotal = cartItems.reduce((sum, item) => sum + item.subtotal, 0);
+        const tax = subtotal * 0.08;
+        const total = subtotal + tax;
+
+        return { subtotal, tax, total };
+    }, [cartItems]);
+
+    const handleRemoveItem = async (productId) => {
+        await fetch(`${CART_API_URL}/${productId}`, { method: 'DELETE' });
+        setCartItems((items) => items.filter((item) => item.productId !== productId));
+    };
+
+    if (loading) {
+        return (
+            <section className="cart py-80">
+                <div className="container container-lg">
+                    <div className="text-center py-48">
+                        <h6 className="text-heading fw-bold mb-8">Loading cart…</h6>
+                        <p className="text-gray-500 mb-0">Fetching your Valkey-backed cart.</p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
+    if (error) {
+        return (
+            <section className="cart py-80">
+                <div className="container container-lg">
+                    <div className="text-center py-48 px-24 border border-danger-200 bg-danger-50 rounded-16">
+                        <h6 className="text-danger-600 fw-bold mb-8">Unable to Load Cart</h6>
+                        <p className="text-gray-600 mb-0">{error}</p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section className="cart py-80">
             <div className="container container-lg">
@@ -21,302 +125,70 @@ const CartSection = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>
-                                                <button
-                                                    type="button"
-                                                    className="remove-tr-btn flex-align gap-12 hover-text-danger-600"
-                                                >
-                                                    <i className="ph ph-x-circle text-2xl d-flex" />
-                                                    Remove
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <div className="table-product d-flex align-items-center gap-24">
-                                                    <Link
-                                                        to="/product-details-two"
-                                                        className="table-product__thumb border border-gray-100 rounded-8 flex-center "
-                                                    >
-                                                        <img
-                                                            src="assets/images/thumbs/product-two-img1.png"
-                                                            alt=""
-                                                        />
-                                                    </Link>
-                                                    <div className="table-product__content text-start">
-                                                        <h6 className="title text-lg fw-semibold mb-8">
+                                        {cartItems.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={5} className="text-center py-48 text-gray-500">
+                                                    Your cart is empty.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            cartItems.map((item) => (
+                                                <tr key={item.productId}>
+                                                    <td>
+                                                        <button
+                                                            type="button"
+                                                            className="remove-tr-btn flex-align gap-12 hover-text-danger-600"
+                                                            onClick={() => handleRemoveItem(item.productId)}
+                                                        >
+                                                            <i className="ph ph-x-circle text-2xl d-flex" />
+                                                            Remove
+                                                        </button>
+                                                    </td>
+                                                    <td>
+                                                        <div className="table-product d-flex align-items-center gap-24">
                                                             <Link
                                                                 to="/product-details"
-                                                                className="link text-line-2"
-                                                                tabIndex={0}
+                                                                className="table-product__thumb border border-gray-100 rounded-8 flex-center "
                                                             >
-                                                                Taylor Farms Broccoli Florets Vegetables
+                                                                <img
+                                                                    src="assets/images/thumbs/product-two-img1.png"
+                                                                    alt=""
+                                                                />
                                                             </Link>
-                                                        </h6>
-                                                        <div className="flex-align gap-16 mb-16">
-                                                            <div className="flex-align gap-6">
-                                                                <span className="text-md fw-medium text-warning-600 d-flex">
-                                                                    <i className="ph-fill ph-star" />
-                                                                </span>
-                                                                <span className="text-md fw-semibold text-gray-900">
-                                                                    4.8
-                                                                </span>
+                                                            <div className="table-product__content text-start">
+                                                                <h6 className="title text-lg fw-semibold mb-8">
+                                                                    <Link
+                                                                        to="/product-details"
+                                                                        className="link text-line-2"
+                                                                        tabIndex={0}
+                                                                    >
+                                                                        {item.productName}
+                                                                    </Link>
+                                                                </h6>
+                                                                <div className="flex-align gap-16 mb-16">
+                                                                    <span className="text-neutral-600 text-sm">
+                                                                        Product ID: {item.productId}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <span className="text-sm fw-medium text-gray-200">
-                                                                |
-                                                            </span>
-                                                            <span className="text-neutral-600 text-sm">
-                                                                128 Reviews
-                                                            </span>
                                                         </div>
-                                                        <div className="flex-align gap-16">
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Camera
-                                                            </Link>
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Videos
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                            <td>
-                                                <QuantityControl initialQuantity={1} />
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <button
-                                                    type="button"
-                                                    className="remove-tr-btn flex-align gap-12 hover-text-danger-600"
-                                                >
-                                                    <i className="ph ph-x-circle text-2xl d-flex" />
-                                                    Remove
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <div className="table-product d-flex align-items-center gap-24">
-                                                    <Link
-                                                        to="/product-details-two"
-                                                        className="table-product__thumb border border-gray-100 rounded-8 flex-center "
-                                                    >
-                                                        <img
-                                                            src="assets/images/thumbs/product-two-img2.png"
-                                                            alt=""
-                                                        />
-                                                    </Link>
-                                                    <div className="table-product__content text-start">
-                                                        <h6 className="title text-lg fw-semibold mb-8">
-                                                            <Link
-                                                                to="/product-details"
-                                                                className="link text-line-2"
-                                                                tabIndex={0}
-                                                            >
-                                                                Taylor Farms Broccoli Florets Vegetables
-                                                            </Link>
-                                                        </h6>
-                                                        <div className="flex-align gap-16 mb-16">
-                                                            <div className="flex-align gap-6">
-                                                                <span className="text-md fw-medium text-warning-600 d-flex">
-                                                                    <i className="ph-fill ph-star" />
-                                                                </span>
-                                                                <span className="text-md fw-semibold text-gray-900">
-                                                                    4.8
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-sm fw-medium text-gray-200">
-                                                                |
-                                                            </span>
-                                                            <span className="text-neutral-600 text-sm">
-                                                                128 Reviews
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-align gap-16">
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Camera
-                                                            </Link>
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Videos
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                            <td>
-                                                <QuantityControl initialQuantity={1} />
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <button
-                                                    type="button"
-                                                    className="remove-tr-btn flex-align gap-12 hover-text-danger-600"
-                                                >
-                                                    <i className="ph ph-x-circle text-2xl d-flex" />
-                                                    Remove
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <div className="table-product d-flex align-items-center gap-24">
-                                                    <Link
-                                                        to="/product-details-two"
-                                                        className="table-product__thumb border border-gray-100 rounded-8 flex-center "
-                                                    >
-                                                        <img
-                                                            src="assets/images/thumbs/product-two-img3.png"
-                                                            alt=""
-                                                        />
-                                                    </Link>
-                                                    <div className="table-product__content text-start">
-                                                        <h6 className="title text-lg fw-semibold mb-8">
-                                                            <Link
-                                                                to="/product-details"
-                                                                className="link text-line-2"
-                                                                tabIndex={0}
-                                                            >
-                                                                Taylor Farms Broccoli Florets Vegetables
-                                                            </Link>
-                                                        </h6>
-                                                        <div className="flex-align gap-16 mb-16">
-                                                            <div className="flex-align gap-6">
-                                                                <span className="text-md fw-medium text-warning-600 d-flex">
-                                                                    <i className="ph-fill ph-star" />
-                                                                </span>
-                                                                <span className="text-md fw-semibold text-gray-900">
-                                                                    4.8
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-sm fw-medium text-gray-200">
-                                                                |
-                                                            </span>
-                                                            <span className="text-neutral-600 text-sm">
-                                                                128 Reviews
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-align gap-16">
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Camera
-                                                            </Link>
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Videos
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                            <td>
-                                                <QuantityControl initialQuantity={1} />
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <button
-                                                    type="button"
-                                                    className="remove-tr-btn flex-align gap-12 hover-text-danger-600"
-                                                >
-                                                    <i className="ph ph-x-circle text-2xl d-flex" />
-                                                    Remove
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <div className="table-product d-flex align-items-center gap-24">
-                                                    <Link
-                                                        to="/product-details-two"
-                                                        className="table-product__thumb border border-gray-100 rounded-8 flex-center "
-                                                    >
-                                                        <img
-                                                            src="assets/images/thumbs/product-two-img4.png"
-                                                            alt=""
-                                                        />
-                                                    </Link>
-                                                    <div className="table-product__content text-start">
-                                                        <h6 className="title text-lg fw-semibold mb-8">
-                                                            <Link
-                                                                to="/product-details"
-                                                                className="link text-line-2"
-                                                                tabIndex={0}
-                                                            >
-                                                                Taylor Farms Broccoli Florets Vegetables
-                                                            </Link>
-                                                        </h6>
-                                                        <div className="flex-align gap-16 mb-16">
-                                                            <div className="flex-align gap-6">
-                                                                <span className="text-md fw-medium text-warning-600 d-flex">
-                                                                    <i className="ph-fill ph-star" />
-                                                                </span>
-                                                                <span className="text-md fw-semibold text-gray-900">
-                                                                    4.8
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-sm fw-medium text-gray-200">
-                                                                |
-                                                            </span>
-                                                            <span className="text-neutral-600 text-sm">
-                                                                128 Reviews
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-align gap-16">
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Camera
-                                                            </Link>
-                                                            <Link
-                                                                to="/cart"
-                                                                className="product-card__cart btn bg-gray-50 text-heading text-sm hover-bg-main-600 hover-text-white py-7 px-8 rounded-8 flex-center gap-8 fw-medium"
-                                                            >
-                                                                Videos
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                            <td>
-                                                <QuantityControl initialQuantity={1} />
-                                            </td>
-                                            <td>
-                                                <span className="text-lg h6 mb-0 fw-semibold">$125.00</span>
-                                            </td>
-                                        </tr>
+                                                    </td>
+                                                    <td>
+                                                        <span className="text-lg h6 mb-0 fw-semibold">
+                                                            ${item.price.toFixed(2)}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <QuantityControl initialQuantity={item.quantity} />
+                                                    </td>
+                                                    <td>
+                                                        <span className="text-lg h6 mb-0 fw-semibold">
+                                                            ${item.subtotal.toFixed(2)}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -349,7 +221,7 @@ const CartSection = () => {
                             <div className="bg-color-three rounded-8 p-24">
                                 <div className="mb-32 flex-between gap-8">
                                     <span className="text-gray-900 font-heading-two">Subtotal</span>
-                                    <span className="text-gray-900 fw-semibold">$250.00</span>
+                                    <span className="text-gray-900 fw-semibold">${totals.subtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="mb-32 flex-between gap-8">
                                     <span className="text-gray-900 font-heading-two">
@@ -361,13 +233,13 @@ const CartSection = () => {
                                     <span className="text-gray-900 font-heading-two">
                                         Extimated Taxs
                                     </span>
-                                    <span className="text-gray-900 fw-semibold">USD 10.00</span>
+                                    <span className="text-gray-900 fw-semibold">USD {totals.tax.toFixed(2)}</span>
                                 </div>
                             </div>
                             <div className="bg-color-three rounded-8 p-24 mt-24">
                                 <div className="flex-between gap-8">
                                     <span className="text-gray-900 text-xl fw-semibold">Total</span>
-                                    <span className="text-gray-900 text-xl fw-semibold">$250.00</span>
+                                    <span className="text-gray-900 text-xl fw-semibold">${totals.total.toFixed(2)}</span>
                                 </div>
                             </div>
                             <Link

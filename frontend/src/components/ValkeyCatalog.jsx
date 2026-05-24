@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const API_URL = 'http://localhost:5000/api/products';
+const CART_API_URL = 'http://localhost:5000/api/cart';
 
 /* ───────────── category → icon + accent colour mapping ───────────── */
 const categoryMeta = {
@@ -62,6 +63,33 @@ const SkeletonCard = () => (
 const ProductCard = ({ product }) => {
   const meta  = getCategoryMeta(product.category);
   const badge = stockBadge(product.stock);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [feedback, setFeedback] = useState('');
+
+  const addToCart = async () => {
+    try {
+      setAddingToCart(true);
+      setFeedback('');
+
+      const res = await fetch(CART_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productId: product.id, quantity: 1 }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server responded with ${res.status}`);
+      }
+
+      setFeedback('Added to cart');
+    } catch (error) {
+      setFeedback(`Could not add item: ${error.message}`);
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   return (
     <div className="col-xxl-3 col-lg-4 col-sm-6 col-12">
@@ -130,10 +158,14 @@ const ProductCard = ({ product }) => {
           <button
             type="button"
             className="btn bg-main-50 text-main-600 hover-bg-main-600 hover-text-white w-100 py-11 rounded-pill flex-center gap-8 fw-semibold transition-2"
-            onClick={() => alert(`🛒 "${product.name}" added to cart!`)}
+            onClick={addToCart}
+            disabled={addingToCart}
           >
-            Add to Cart <i className="ph ph-shopping-cart text-lg" />
+            {addingToCart ? 'Adding…' : 'Add to Cart'} <i className="ph ph-shopping-cart text-lg" />
           </button>
+          {feedback && (
+            <p className="text-xs mt-8 mb-0 text-gray-500">{feedback}</p>
+          )}
         </div>
       </div>
     </div>
